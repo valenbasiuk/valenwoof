@@ -1,5 +1,22 @@
 plan.md
 
-# Added by cargo
-
+# cargo build output
 /target
+
+# variables de entorno y secretos — nunca subir estos
+.env
+.env.local
+.env.*.local
+secrets.toml
+
+# archivos de editor / ide
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macos
+.DS_Store
+
+# archivos de debug de rust
+*.pdb
