@@ -1,9 +1,10 @@
 use twitch_irc::login::StaticLoginCredentials;
+use twitch_irc::message::ServerMessage;
 use twitch_irc::{ClientConfig, SecureTCPTransport, TwitchIRCClient};
 
 use crate::config::Config;
 
-/// arranca la conexion al chat de twitch y loguea que se conecto
+/// arranca la conexion al chat de twitch, hace join al canal y loguea mensajes entrantes
 pub async fn connect(cfg: &Config) {
     let login_config = ClientConfig::new_simple(StaticLoginCredentials::new(
         cfg.bot_username.clone(),
@@ -13,18 +14,35 @@ pub async fn connect(cfg: &Config) {
     let (mut incoming_messages, client) =
         TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(login_config);
 
-    // arrancar tarea para consumir mensajes entrantes (necesario para que el cliente funcione)
+    // arrancar tarea para consumir mensajes entrantes antes de hacer join
+    let channel = cfg.channel.clone();
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
-            println!("mensaje recibido: {:?}", message);
+            match message {
+                ServerMessage::Join(msg) => {
+                    println!("[join] {} entro a #{}", msg.user_login, msg.channel_login);
+                }
+                ServerMessage::Privmsg(msg) => {
+                    println!("[chat] #{} | {}: {}", msg.channel_login, msg.sender.login, msg.message_text);
+                }
+                ServerMessage::Notice(msg) => {
+                    println!("[notice] #{} | {}", msg.channel_login.as_deref().unwrap_or("?"), msg.message_text);
+                }
+                _ => {
+                    // otros mensajes del servidor: ignorar por ahora
+                }
+            }
         }
+        println!("[bot] canal #{}: stream de mensajes cerrado", channel);
     });
 
-    // unirse al canal
-    client.join(cfg.channel.clone()).expect("fallo al hacer join al canal");
+    // hacer join al canal
+    client
+        .join(cfg.channel.clone())
+        .expect("fallo al hacer join al canal");
 
-    println!("conectado a twitch irc, canal: #{}", cfg.channel);
+    println!("[bot] conectado a twitch irc, esperando join a #{}", cfg.channel);
 
-    // esperar a que el loop de mensajes termine (corre para siempre en condiciones normales)
+    // mantener el loop corriendo hasta que el join_handle termine
     join_handle.await.unwrap();
 }
