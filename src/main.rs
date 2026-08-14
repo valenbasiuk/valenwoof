@@ -4,7 +4,11 @@ mod db;
 mod mcsr;
 mod spotify;
 
-fn main() {
-    println!("Hello, world!");
+#[tokio::main]
+async fn main() {
+    // cargar variables de entorno desde .env (si existe)
+    dotenvy::dotenv().ok();
+
+    println!("valenwoof arrancando...");
 }
 
