@@ -24,10 +24,10 @@ pub async fn connect(cfg: &Config) {
         while let Some(message) = incoming_messages.recv().await {
             match message {
                 ServerMessage::Join(msg) => {
-                    println!("[join] {} entro a #{}", msg.user_login, msg.channel_login);
+                    tracing::info!("[join] {} entro a #{}", msg.user_login, msg.channel_login);
                 }
                 ServerMessage::Privmsg(msg) => {
-                    println!("[chat] #{} | {}: {}", msg.channel_login, msg.sender.login, msg.message_text);
+                    tracing::info!("[chat] #{} | {}: {}", msg.channel_login, msg.sender.login, msg.message_text);
 
                     if let Some((cmd_name, _args)) = commands::parse_command(&msg.message_text) {
                         if cmd_name == "ping" {
@@ -36,31 +36,31 @@ pub async fn connect(cfg: &Config) {
                                 .privmsg(msg.channel_login.clone(), response.to_string())
                                 .await
                                 .ok();
-                            println!("[bot -> #{}] {}", msg.channel_login, response);
+                            tracing::info!("[bot -> #{}] {}", msg.channel_login, response);
                         }
                     }
                 }
                 ServerMessage::Notice(msg) => {
-                    println!("[notice] #{} | {}", msg.channel_login.as_deref().unwrap_or("?"), msg.message_text);
+                    tracing::info!("[notice] #{} | {}", msg.channel_login.as_deref().unwrap_or("?"), msg.message_text);
                 }
                 ServerMessage::Reconnect(_) => {
-                    println!("[bot] twitch pidio reconexion, reconectando automaticamente...");
+                    tracing::warn!("[bot] twitch pidio reconexion, reconectando automaticamente...");
                 }
                 _ => {
                     // otros mensajes del servidor: ignorar por ahora
                 }
             }
         }
-        println!("[bot] canal #{}: stream de mensajes cerrado", channel);
+        tracing::warn!("[bot] canal #{}: stream de mensajes cerrado", channel);
     });
-
 
     // hacer join al canal
     client
         .join(cfg.channel.clone())
         .expect("fallo al hacer join al canal");
 
-    println!("[bot] conectado a twitch irc, esperando join a #{}", cfg.channel);
+    tracing::info!("[bot] conectado a twitch irc, esperando join a #{}", cfg.channel);
+
 
     // mantener el loop corriendo hasta que el join_handle termine
     join_handle.await.unwrap();
