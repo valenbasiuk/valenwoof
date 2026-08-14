@@ -1,8 +1,10 @@
 // modulos principales del bot
 mod bot;
+mod config;
 mod db;
 mod mcsr;
 mod spotify;
+
 
 #[tokio::main]
 async fn main() {
