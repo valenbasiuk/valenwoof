@@ -5,12 +5,16 @@ mod db;
 mod mcsr;
 mod spotify;
 
+use config::Config;
 
 #[tokio::main]
 async fn main() {
     // cargar variables de entorno desde .env (si existe)
     dotenvy::dotenv().ok();
 
-    println!("valenwoof arrancando...");
-}
+    let cfg = Config::from_env();
 
+    println!("valenwoof arrancando...");
+
+    bot::connect(&cfg).await;
+}
