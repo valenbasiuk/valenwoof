@@ -43,6 +43,9 @@ pub async fn connect(cfg: &Config) {
                 ServerMessage::Notice(msg) => {
                     println!("[notice] #{} | {}", msg.channel_login.as_deref().unwrap_or("?"), msg.message_text);
                 }
+                ServerMessage::Reconnect(_) => {
+                    println!("[bot] twitch pidio reconexion, reconectando automaticamente...");
+                }
                 _ => {
                     // otros mensajes del servidor: ignorar por ahora
                 }
