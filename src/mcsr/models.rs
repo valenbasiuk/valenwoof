@@ -48,3 +48,38 @@ pub struct ModeStat<T> {
     pub ranked: T,
     pub casual: T,
 }
+
+/// partida retornado por GET /users/{identifier}/matches
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchInfo {
+    pub id: i64,
+    pub r#type: i32,
+    pub category: Option<String>,
+    pub forfeited: bool,
+    pub decayed: Option<bool>,
+    pub season: Option<i32>,
+    pub date: i64,
+    pub seed_type: Option<String>,
+    pub bastion_type: Option<String>,
+    pub result: MatchResult,
+    pub players: Vec<MatchPlayer>,
+}
+
+/// resultado de una partida
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MatchResult {
+    pub uuid: Option<String>,
+    pub time: Option<i64>,
+}
+
+/// jugador dentro de una partida
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchPlayer {
+    pub uuid: String,
+    pub nickname: String,
+    pub elo_rate: Option<i32>,
+    pub elo_rank: Option<i32>,
+}
+
