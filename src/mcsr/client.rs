@@ -26,4 +26,19 @@ impl McsrClient {
     pub fn http(&self) -> &Client {
         &self.http
     }
+
+    /// obtiene el perfil completo de un usuario por su nickname o uuid
+    pub async fn get_user_profile(&self, identifier: &str) -> Result<crate::mcsr::models::UserProfile, reqwest::Error> {
+        let url = self.url(&format!("/users/{identifier}"));
+        let response = self
+            .http
+            .get(&url)
+            .send()
+            .await?
+            .json::<crate::mcsr::models::ApiResponse<crate::mcsr::models::UserProfile>>()
+            .await?;
+
+        Ok(response.data)
+    }
 }
+
