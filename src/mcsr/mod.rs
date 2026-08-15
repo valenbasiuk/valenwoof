@@ -1,4 +1,5 @@
 pub mod client;
+pub mod models;
 
 // cliente y documentacion de la api de mcsrranked
 //
