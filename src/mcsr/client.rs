@@ -1,4 +1,7 @@
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
+
+use crate::mcsr::errors::McsrError;
+use crate::mcsr::models::{ApiResponse, MatchInfo, UserProfile};
 
 const BASE_URL: &str = "https://api.mcsrranked.com";
 
@@ -31,17 +34,28 @@ impl McsrClient {
     pub async fn get_user_profile(
         &self,
         identifier: &str,
-    ) -> Result<crate::mcsr::models::UserProfile, reqwest::Error> {
+    ) -> Result<UserProfile, McsrError> {
         let url = self.url(&format!("/users/{identifier}"));
-        let response = self
-            .http
-            .get(&url)
-            .send()
-            .await?
-            .json::<crate::mcsr::models::ApiResponse<crate::mcsr::models::UserProfile>>()
-            .await?;
+        let res = self.http.get(&url).send().await?;
 
-        Ok(response.data)
+        if res.status() == StatusCode::TOO_MANY_REQUESTS {
+            return Err(McsrError::RateLimited);
+        }
+        if res.status() == StatusCode::NOT_FOUND {
+            return Err(McsrError::UserNotFound(identifier.to_string()));
+        }
+
+        let api_res = res.json::<ApiResponse<UserProfile>>().await;
+        match api_res {
+            Ok(parsed) => {
+                if parsed.status == "error" {
+                    Err(McsrError::UserNotFound(identifier.to_string()))
+                } else {
+                    Ok(parsed.data)
+                }
+            }
+            Err(_) => Err(McsrError::UserNotFound(identifier.to_string())),
+        }
     }
 
     /// obtiene el historial de partidas recientes de un usuario
@@ -49,17 +63,16 @@ impl McsrClient {
         &self,
         identifier: &str,
         count: Option<u32>,
-    ) -> Result<Vec<crate::mcsr::models::MatchInfo>, reqwest::Error> {
+    ) -> Result<Vec<MatchInfo>, McsrError> {
         let count_val = count.unwrap_or(20);
         let url = self.url(&format!("/users/{identifier}/matches?count={count_val}"));
-        let response = self
-            .http
-            .get(&url)
-            .send()
-            .await?
-            .json::<crate::mcsr::models::ApiResponse<Vec<crate::mcsr::models::MatchInfo>>>()
-            .await?;
+        let res = self.http.get(&url).send().await?;
 
-        Ok(response.data)
+        if res.status() == StatusCode::TOO_MANY_REQUESTS {
+            return Err(McsrError::RateLimited);
+        }
+
+        let api_res = res.json::<ApiResponse<Vec<MatchInfo>>>().await?;
+        Ok(api_res.data)
     }
 }
