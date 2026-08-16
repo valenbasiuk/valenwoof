@@ -28,7 +28,10 @@ impl McsrClient {
     }
 
     /// obtiene el perfil completo de un usuario por su nickname o uuid
-    pub async fn get_user_profile(&self, identifier: &str) -> Result<crate::mcsr::models::UserProfile, reqwest::Error> {
+    pub async fn get_user_profile(
+        &self,
+        identifier: &str,
+    ) -> Result<crate::mcsr::models::UserProfile, reqwest::Error> {
         let url = self.url(&format!("/users/{identifier}"));
         let response = self
             .http
@@ -40,5 +43,23 @@ impl McsrClient {
 
         Ok(response.data)
     }
-}
 
+    /// obtiene el historial de partidas recientes de un usuario
+    pub async fn get_user_matches(
+        &self,
+        identifier: &str,
+        count: Option<u32>,
+    ) -> Result<Vec<crate::mcsr::models::MatchInfo>, reqwest::Error> {
+        let count_val = count.unwrap_or(20);
+        let url = self.url(&format!("/users/{identifier}/matches?count={count_val}"));
+        let response = self
+            .http
+            .get(&url)
+            .send()
+            .await?
+            .json::<crate::mcsr::models::ApiResponse<Vec<crate::mcsr::models::MatchInfo>>>()
+            .await?;
+
+        Ok(response.data)
+    }
+}
