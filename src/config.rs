@@ -7,6 +7,8 @@ pub struct Config {
     pub channel: String,
     pub twitch_client_id: String,
     pub twitch_client_secret: String,
+    /// nombre de minecraft del streamer (usuario por default para !oshbt y !averages)
+    pub mcsr_username: String,
 }
 
 impl Config {
@@ -18,6 +20,8 @@ impl Config {
             channel: require_env("TWITCH_CHANNEL"),
             twitch_client_id: require_env("TWITCH_CLIENT_ID"),
             twitch_client_secret: require_env("TWITCH_CLIENT_SECRET"),
+            mcsr_username: env::var("MCSR_USERNAME")
+                .unwrap_or_else(|_| env::var("TWITCH_CHANNEL").unwrap_or_default()),
         }
     }
 }
