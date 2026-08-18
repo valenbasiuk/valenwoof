@@ -54,7 +54,7 @@ pub fn format_user_stats(profile: &UserProfile) -> String {
     };
 
     format!(
-        "[{name}] ELO: {elo} (Rank {rank}) | W/L: {wins}W/{loses}L ({winrate:.1}%) | Matches: {played} | PB: {pb_str} | Avg: {avg_str} | FF Rate: {ff_rate:.1}%",
+        "[{name}] elo: {elo} | rank: {rank} | W/L: {wins}W/{loses}L ({winrate:.1}%) | matches: {played} | pb: {pb_str} | avg: {avg_str} | ff rate: {ff_rate:.1}%",
         name = profile.nickname,
     )
 }
@@ -82,7 +82,7 @@ pub fn format_averages(nickname: &str, matches: &[MatchInfo]) -> String {
     }
 
     if overall_times.is_empty() {
-        return format!("[{nickname}] sin completions rankeadas en las ultimas partidas");
+        return format!("[{nickname}] sin completions de ranked en las ultimas partidas");
     }
 
     let overall_avg = overall_times.iter().sum::<i64>() / overall_times.len() as i64;
