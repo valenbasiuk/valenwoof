@@ -9,6 +9,8 @@ pub struct Config {
     pub twitch_client_secret: String,
     /// nombre de minecraft del streamer (usuario por default para !oshbt y !averages)
     pub mcsr_username: String,
+    /// url de conexion a postgresql/supabase
+    pub database_url: Option<String>,
 }
 
 impl Config {
@@ -22,9 +24,11 @@ impl Config {
             twitch_client_secret: require_env("TWITCH_CLIENT_SECRET"),
             mcsr_username: env::var("MCSR_USERNAME")
                 .unwrap_or_else(|_| env::var("TWITCH_CHANNEL").unwrap_or_default()),
+            database_url: env::var("DATABASE_URL").ok(),
         }
     }
 }
+
 
 fn require_env(key: &str) -> String {
     env::var(key).unwrap_or_else(|_| panic!("variable de entorno requerida no encontrada: {key}"))

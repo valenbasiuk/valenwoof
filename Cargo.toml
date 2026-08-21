@@ -12,3 +12,5 @@ dotenvy = "0.15"
 twitch-irc = "6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"] }
+
