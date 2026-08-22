@@ -5,6 +5,7 @@ use twitch_irc::message::ServerMessage;
 use twitch_irc::{ClientConfig, SecureTCPTransport, TwitchIRCClient};
 
 use crate::config::Config;
+use crate::db;
 use crate::mcsr::client::McsrClient;
 use crate::mcsr::formatter;
 
@@ -25,6 +26,23 @@ pub async fn connect(cfg: &Config) {
     let default_mcsr_user = cfg.mcsr_username.clone();
     let mcsr = Arc::new(McsrClient::new());
 
+    // inicializar db pool si hay database_url configurada
+    let db_pool = if let Some(ref db_url) = cfg.database_url {
+        match db::init_pool(db_url).await {
+            Ok(pool) => {
+                tracing::info!("[db] conexion exitosa a la base de datos");
+                Some(pool)
+            }
+            Err(e) => {
+                tracing::error!("[db] error al conectar a la base de datos: {e}");
+                None
+            }
+        }
+    } else {
+        tracing::warn!("[db] DATABASE_URL no configurada, comandos custom deshabilitados");
+        None
+    };
+
     let join_handle = tokio::spawn(async move {
         while let Some(message) = incoming_messages.recv().await {
             match message {
@@ -40,26 +58,39 @@ pub async fn connect(cfg: &Config) {
                         let mcsr_clone = Arc::clone(&mcsr);
                         let default_user = default_mcsr_user.clone();
 
-                        let response = match cmd_name {
-                            "ping" => Some("pong!".to_string()),
-
-                            "oshbt" => {
-                                let user = if args.is_empty() { &default_user } else { args };
-                                match mcsr_clone.get_user_profile(user).await {
-                                    Ok(profile) => Some(formatter::format_user_stats(&profile)),
-                                    Err(e) => Some(format!("error: {e}")),
-                                }
+                        // 1. buscar primero en comandos custom de la base de datos
+                        let mut custom_response = None;
+                        if let Some(ref pool) = db_pool {
+                            if let Ok(Some(cmd)) = db::commands::get_command_by_name(pool, cmd_name).await {
+                                custom_response = Some(cmd.response);
                             }
+                        }
 
-                            "averages" => {
-                                let user = if args.is_empty() { &default_user } else { args };
-                                match mcsr_clone.get_user_matches(user, Some(50)).await {
-                                    Ok(matches) => Some(formatter::format_averages(user, &matches)),
-                                    Err(e) => Some(format!("error: {e}")),
+                        // 2. si habia comando custom, usar su respuesta; si no, buscar en hardcodeados
+                        let response = if let Some(resp) = custom_response {
+                            Some(resp)
+                        } else {
+                            match cmd_name {
+                                "ping" => Some("pong!".to_string()),
+
+                                "oshbt" => {
+                                    let user = if args.is_empty() { &default_user } else { args };
+                                    match mcsr_clone.get_user_profile(user).await {
+                                        Ok(profile) => Some(formatter::format_user_stats(&profile)),
+                                        Err(e) => Some(format!("error: {e}")),
+                                    }
                                 }
-                            }
 
-                            _ => None,
+                                "averages" => {
+                                    let user = if args.is_empty() { &default_user } else { args };
+                                    match mcsr_clone.get_user_matches(user, Some(50)).await {
+                                        Ok(matches) => Some(formatter::format_averages(user, &matches)),
+                                        Err(e) => Some(format!("error: {e}")),
+                                    }
+                                }
+
+                                _ => None,
+                            }
                         };
 
                         if let Some(text) = response {
